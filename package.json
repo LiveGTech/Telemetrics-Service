@@ -1,0 +1,14 @@
+{
+    "name": "liveg-telemetrics",
+    "version": "0.1.0",
+    "description": "Server-side API service for LiveG's open device usage research scheme.",
+    "main": "src/main.js",
+    "author": "LiveG Technologies",
+    "repository": "https://github.com/LiveGTech/Telemetrics-Service",
+    "scripts": {
+        "telemetrics": "node src/main.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2"
+    }
+}
