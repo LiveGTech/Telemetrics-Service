@@ -19,6 +19,7 @@ var app = express();
 const CUMULATIVE_DATA_PATH = path.join("data", "cumulative.json");
 
 var cumulativeData = {};
+var schemas = {};
 
 try {
     cumulativeData = JSON.parse(fs.readFileSync(CUMULATIVE_DATA_PATH));
@@ -30,6 +31,12 @@ function saveData() {
     fs.writeFileSync(CUMULATIVE_DATA_PATH, JSON.stringify(cumulativeData));
 }
 
+function loadSchema(schemaName) {
+    var data = JSON.parse(fs.readFileSync(path.join("schemas", `${schemaName}.json`)));
+
+    schemas[data.name] = data;
+}
+
 app.get("/api/telemetrics", function(request, response) {
     response.send({
         status: "ok",
@@ -38,7 +45,21 @@ app.get("/api/telemetrics", function(request, response) {
     });
 });
 
-app.post("/api/telemetrics/event", function(request, response) {
+app.post("/api/telemetrics/event/:name", function(request, response) {
+    var schema = schemas[request.params["name"]];
+
+    if (!schema) {
+        response.status(404);
+
+        response.send({
+            status: "error",
+            code: "unknownEventType",
+            message: "The given name of the event type is unknown."
+        });
+
+        return;
+    }
+
     saveData();
 
     response.send({
@@ -55,6 +76,8 @@ app.use(function(request, response, next) {
         message: "The endpoint requested is invalid."
     });
 });
+
+loadSchema("os_downloadIm");
 
 app.listen(process.argv[2], function() {
     console.log(`LiveG Telemetrics started on port ${process.argv[2]}`);

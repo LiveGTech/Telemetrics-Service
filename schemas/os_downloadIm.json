@@ -1,0 +1,11 @@
+{
+    "name": "os_downloadIm",
+    "humanReadableName": {
+        "en_GB": "LiveG OS Installation Media downloads"
+    },
+    "description": {
+        "en_GB": "The number of times the LiveG OS Installation Media has been downloaded from the LiveG website."
+    },
+    "fallbackLocale": "en_GB",
+    "characteristics": ["platform", "version", "vernum", "hostOs", "hostLocale"]
+}
