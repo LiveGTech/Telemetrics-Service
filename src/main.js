@@ -33,7 +33,8 @@ function saveData() {
 app.get("/api/telemetrics", function(request, response) {
     response.send({
         status: "ok",
-        version: package.version
+        version: package.version,
+        vernum: package.vernum
     });
 });
 
