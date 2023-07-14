@@ -60,6 +60,28 @@ app.post("/api/telemetrics/event/:name", function(request, response) {
         return;
     }
 
+    cumulativeData.events ||= {};
+    cumulativeData.events[schema.name] ||= {};
+
+    var eventData = cumulativeData.events[schema.name];
+
+    eventData.allCount ||= 0;
+    eventData.allCount++;
+
+    eventData.characteristics ||= {};
+
+    schema.characteristics.forEach(function(characteristic) {
+        eventData.characteristics[characteristic] ||= {};
+
+        var characteristicData = eventData.characteristics[characteristic];
+        var characteristicValue = request.query[characteristic] || "";
+
+        characteristicData.counts ||= {};
+
+        characteristicData.counts[characteristicValue] ||= 0;
+        characteristicData.counts[characteristicValue]++;
+    });
+
     saveData();
 
     response.send({
