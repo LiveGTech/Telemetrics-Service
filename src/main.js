@@ -17,9 +17,12 @@ const package = require("../package.json");
 var app = express();
 
 const CUMULATIVE_DATA_PATH = path.join("data", "cumulative.json");
+const MAX_EVENT_POST_COUNT = 20;
+const MIN_EVENT_POST_DURATION = 24 * 60 * 60 * 1_000; // 1 day
 
 var cumulativeData = {};
 var schemas = {};
+var requestIps = {};
 
 try {
     cumulativeData = JSON.parse(fs.readFileSync(CUMULATIVE_DATA_PATH));
@@ -46,6 +49,44 @@ app.get("/api/telemetrics", function(request, response) {
 });
 
 app.post("/api/telemetrics/event/:name", function(request, response) {
+    var ip = request.header("X-Request-IP");
+
+    console.log(ip, requestIps);
+
+    if (ip) {
+        requestIps[ip] ||= {
+            requests: []
+        };
+
+        requestIps[ip].requests = requestIps[ip].requests.filter(function(request) {
+            if (Date.now() - request.sentAt > MIN_EVENT_POST_DURATION) {
+                return false;
+            }
+
+            return true;
+        });
+
+        if (
+            requestIps[ip] &&
+            requestIps[ip].requests.length > MAX_EVENT_POST_COUNT &&
+            Date.now() - requestIps[ip].requests[0].sentAt <= MIN_EVENT_POST_DURATION
+        ) {
+            response.status(429);
+
+            response.send({
+                status: "error",
+                code: "limitReached",
+                message: "The limit for the number of events that may be sent from this client has been reached. Please try again later."
+            });
+
+            return;
+        }
+
+        requestIps[ip].requests.push({
+            sentAt: Date.now()
+        });
+    }
+
     var schema = schemas[request.params["name"]];
 
     if (!schema) {
