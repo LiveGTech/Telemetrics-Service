@@ -51,8 +51,6 @@ app.get("/api/telemetrics", function(request, response) {
 app.post("/api/telemetrics/event/:name", function(request, response) {
     var ip = request.header("X-Request-IP");
 
-    console.log(ip, requestIps);
-
     if (ip) {
         requestIps[ip] ||= {
             requests: []
