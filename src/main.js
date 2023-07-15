@@ -40,6 +40,12 @@ function loadSchema(schemaName) {
     schemas[data.name] = data;
 }
 
+function setDefault(object, key, value) {
+    if (!object[key]) {
+        object[key] = value;
+    }
+}
+
 app.get("/api/telemetrics", function(request, response) {
     response.send({
         status: "ok",
@@ -52,9 +58,9 @@ app.post("/api/telemetrics/event/:name", function(request, response) {
     var ip = request.header("X-Request-IP");
 
     if (ip) {
-        requestIps[ip] ||= {
+        setDefault(requestIps, ip, {
             requests: []
-        };
+        });
 
         requestIps[ip].requests = requestIps[ip].requests.filter(function(request) {
             if (Date.now() - request.sentAt > MIN_EVENT_POST_DURATION) {
@@ -99,25 +105,26 @@ app.post("/api/telemetrics/event/:name", function(request, response) {
         return;
     }
 
-    cumulativeData.events ||= {};
-    cumulativeData.events[schema.name] ||= {};
+    setDefault(cumulativeData, "events", {});
+    setDefault(cumulativeData.events, schema.name, {});
 
     var eventData = cumulativeData.events[schema.name];
 
-    eventData.allCount ||= 0;
+    setDefault(eventData, "allCount", 0);
+
     eventData.allCount++;
 
-    eventData.characteristics ||= {};
+    setDefault(eventData, "characteristics", {});
 
     schema.characteristics.forEach(function(characteristic) {
-        eventData.characteristics[characteristic] ||= {};
+        setDefault(eventData.characteristics, characteristic, {});
 
         var characteristicData = eventData.characteristics[characteristic];
         var characteristicValue = request.query[characteristic] || "";
 
-        characteristicData.counts ||= {};
+        setDefault(characteristicData, "counts", {});
+        setDefault(characteristicData.counts, characteristicValue, 0);
 
-        characteristicData.counts[characteristicValue] ||= 0;
         characteristicData.counts[characteristicValue]++;
     });
 
