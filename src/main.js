@@ -18,7 +18,7 @@ var app = express();
 
 const CUMULATIVE_DATA_PATH = path.join("data", "cumulative.json");
 const MAX_EVENT_POST_COUNT = 20;
-const MIN_EVENT_POST_DURATION = 24 * 60 * 60 * 1_000; // 1 day
+const MIN_EVENT_POST_DURATION = 24 * 60 * 60 * 1000; // 1 day
 
 var cumulativeData = {};
 var schemas = {};
