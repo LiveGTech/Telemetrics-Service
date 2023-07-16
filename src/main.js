@@ -46,6 +46,12 @@ function setDefault(object, key, value) {
     }
 }
 
+app.use(function(request, response, next) {
+    response.header("Access-Control-Allow-Origin", "*");
+
+    next();
+});
+
 app.get("/api/telemetrics", function(request, response) {
     response.send({
         status: "ok",
