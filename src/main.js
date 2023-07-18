@@ -28,9 +28,10 @@ try {
     cumulativeData = JSON.parse(fs.readFileSync(CUMULATIVE_DATA_PATH));
 } catch (e) {}
 
-function saveData() {
-    mkdirp.sync(path.join("data"));
+mkdirp.sync(path.join("data"));
+mkdirp.sync(path.join("data", "full"));
 
+function saveData() {
     fs.writeFileSync(CUMULATIVE_DATA_PATH, JSON.stringify(cumulativeData));
 }
 
@@ -122,17 +123,35 @@ app.post("/api/telemetrics/event/:name", function(request, response) {
 
     setDefault(eventData, "characteristics", {});
 
+    var characteristicValues = [];
+
     schema.characteristics.forEach(function(characteristic) {
         setDefault(eventData.characteristics, characteristic, {});
 
         var characteristicData = eventData.characteristics[characteristic];
         var characteristicValue = request.query[characteristic] || "";
 
+        characteristicValues.push(characteristicValue);
+
         setDefault(characteristicData, "counts", {});
         setDefault(characteristicData.counts, characteristicValue, 0);
 
         characteristicData.counts[characteristicValue]++;
     });
+
+    var fullDataFilename = path.join("data", "full", `${schema.name}.tsv`);
+
+    if (!fs.existsSync(fullDataFilename)) {
+        fs.writeFileSync(fullDataFilename, [
+            "_sentAt",
+            ...schema.characteristics
+        ].map((item) => String(item).replace(/\t/g, "")).join("\t") + "\n");
+    }
+
+    fs.appendFileSync(fullDataFilename, [
+        Date.now(),
+        ...characteristicValues
+    ].map((item) => String(item).replace(/\t/g, "")).join("\t") + "\n");
 
     saveData();
 
