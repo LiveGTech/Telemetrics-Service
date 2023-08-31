@@ -36,9 +36,55 @@ function saveData() {
 }
 
 function loadSchema(schemaName) {
-    var data = JSON.parse(fs.readFileSync(path.join("schemas", `${schemaName}.json`)));
+    var schema = JSON.parse(fs.readFileSync(path.join("schemas", `${schemaName}.json`)));
 
-    schemas[data.name] = data;
+    schemas[schema.name] = schema;
+
+    var fullDataFilename = path.join("data", "full", `${schema.name}.tsv`);
+
+    var header = [
+        "_sentAt",
+        ...schema.characteristics
+    ].map((item) => String(item).replace(/\t/g, "")).join("\t");
+
+    if (!fs.existsSync(fullDataFilename)) {
+        fs.writeFileSync(fullDataFilename, header + "\n");
+
+        console.log(`Full data file for schema \`${schema.name}\` created`);
+    } else {
+        var fullData = fs.readFileSync(fullDataFilename, "utf-8");
+        var allRows = fullData.split("\n");
+        var allNewRows = [];
+        var currentHeader = allRows[0];
+        var currentCharacteristics = currentHeader.split("\t");
+
+        allRows.pop();
+
+        if (currentHeader != header) {
+            console.log(`Backfilling schema \`${schema.name}\`...`);
+
+            allNewRows.push(header);
+
+            for (var i = 1; i < allRows.length; i++) {
+                var row = {};
+
+                allRows[i].split("\t").forEach(function(field, j) {
+                    row[currentCharacteristics[j]] = field;
+                });
+
+                allNewRows.push([
+                    "_sentAt",
+                    ...schema.characteristics
+                ].map((item) => row[item] || "").join("\t"));
+            }
+
+            fs.writeFileSync(fullDataFilename, allNewRows.join("\n") + "\n");
+
+            console.log(`Backfill has been performed to full data for schema \`${schema.name}\``);
+        } else {
+            console.log(`Full data for schema \`${schema.name}\` checked; conforms to current schema specifications`);
+        }
+    }
 }
 
 function setDefault(object, key, value) {
@@ -124,6 +170,35 @@ app.post("/api/telemetrics/event/:name", function(request, response) {
     setDefault(eventData, "characteristics", {});
 
     var characteristicValues = [];
+    var meetsRules = true;
+
+    schema.characteristics.forEach(function(characteristic) {
+        if (!schema.regexRules) {
+            return;
+        }
+
+        var regexRule = schema.regexRules[characteristic] || schema.regexRules[""];
+
+        if (!regexRule) {
+            return;
+        }
+
+        if (!(request.query[characteristic] || "").match(new RegExp(regexRule))) {
+            meetsRules = false;
+        }
+    });
+
+    if (!meetsRules) {
+        response.status(400);
+
+        response.send({
+            status: "error",
+            code: "invalidFormat",
+            message: "The format of the provided event data values is invalid."
+        });
+
+        return;
+    }
 
     schema.characteristics.forEach(function(characteristic) {
         setDefault(eventData.characteristics, characteristic, {});
@@ -140,13 +215,6 @@ app.post("/api/telemetrics/event/:name", function(request, response) {
     });
 
     var fullDataFilename = path.join("data", "full", `${schema.name}.tsv`);
-
-    if (!fs.existsSync(fullDataFilename)) {
-        fs.writeFileSync(fullDataFilename, [
-            "_sentAt",
-            ...schema.characteristics
-        ].map((item) => String(item).replace(/\t/g, "")).join("\t") + "\n");
-    }
 
     fs.appendFileSync(fullDataFilename, [
         Date.now(),

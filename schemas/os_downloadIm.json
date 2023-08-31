@@ -7,5 +7,9 @@
         "en_GB": "The number of times the LiveG OS Installation Media has been downloaded from the LiveG website."
     },
     "fallbackLocale": "en_GB",
-    "characteristics": ["platform", "version", "vernum", "hostOs", "hostLocale"]
+    "characteristics": ["platform", "version", "vernum", "hostOs", "hostLocale"],
+    "regexRules": {
+        "": "^.{0,100}$",
+        "vernum": "^\\d*$"
+    }
 }
